@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title></title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+      }
+    </style>
+</head>
+<body>
+  <div id='map'></div>
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1Ijoic3VueWFuZzA0MjYiLCJhIjoiY2l2Mmh5Y2dxMDF1NzJ5cGhhazU5a3h1ciJ9.LChXuAo-sW2qS33wpha-rw';
+    var map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/dark-v10',
+      center: [-79.384293, 43.653908],
+      zoom: 10  // define how the map is zoomed when open the window
+    });
+
+   // we will add more code here in the next steps. Firstly, add your data.
+   map.on('load', function() {
+
+     map.addSource('accidents', {
+       type: 'geojson',
+       data: './accidents.geojson'
+     });
+
+     // add heatmap layer here
+     map.addLayer({
+       id: 'accidents-heat',
+       type: 'heatmap',
+       source: 'accidents',
+       maxzoom: 15,
+       paint: {
+         //increase weight as diameter breast height increases
+         'heatmap-weight': {
+           property: 'involved',
+           type: 'exponential',
+           stops: [
+             [1, 0],
+             [14, 1]
+           ]
+         },
+         // increase intensity as zoom level increases
+         'heatmap-intensity': {
+           stops: [
+             [11, 1],
+             [15, 3]
+           ]
+         },
+         // assign color values be applied to points depending on their density
+         'heatmap-color': [
+           'interpolate',
+           ['linear'],
+           ['heatmap-density'],
+           0, "rgba(33,102,172,0)",
+           0.2, "rgb(103,169,207)",
+           0.4, "rgb(209,229,240)",
+           0.6, "rgb(253,219,199)",
+           0.8, "rgb(239,138,98)",
+           1, "rgb(178,24,43)"
+         ],
+         // increase radius as zoom increases
+         'heatmap-radius': {
+           stops: [
+             [11, 15],
+             [15, 20]
+           ]
+         },
+         // decrease opacity to transition into the circle layer
+         'heatmap-opacity': {
+           default: 1,
+           stops: [
+             [14, 1],
+             [15, 0]
+           ]
+         },
+       }
+     }, 'waterway-label');
+
+     // add circle layer here
+     map.addLayer({
+       id: 'accidents-point',
+       type: 'circle',
+       source: 'accidents',
+       minzoom: 14,
+       paint: {
+         // increase the radius of the circle as the zoom level and dbh value increases
+         'circle-radius': {
+           property: 'involved',
+           type: 'exponential',
+           stops: [
+             [{ zoom: 15, value: 1 }, 5],
+             [{ zoom: 15, value: 14 }, 10],
+             [{ zoom: 22, value: 1 }, 20],
+             [{ zoom: 22, value: 14 }, 50],
+           ]
+         },
+         'circle-color': {
+           property: 'involved',
+           type: 'exponential',
+           stops: [
+             [1, 'rgba(236,222,239,0)'],
+             [2, 'rgb(236,222,239)'],
+             [5, 'rgb(208,209,230)'],
+             [7, 'rgb(166,189,219)'],
+             [9, 'rgb(103,169,207)'],
+             [11, 'rgb(28,144,153)'],
+             [13, 'rgb(1,108,89)']
+           ]
+         },
+         'circle-stroke-color': 'maroon',
+         'circle-stroke-width': 1,
+         'circle-opacity': {
+           stops: [
+             [14, 0],
+             [15, 1]
+           ]
+         }
+       }
+     }, 'waterway-label');
+   });
+
+    map.on('click', 'accidents-point', function(e) {
+  new mapboxgl.Popup()
+    .setLngLat(e.features[0].geometry.coordinates)
+    .setHTML('This accident happened on ' + e.features[0].properties.date + ' at ' + e.features[0].properties.Hour +  " o'clock. A " + e.features[0].properties.acclass_ + " accident, this one involved " + e.features[0].properties.involved + " individuals.")
+    .addTo(map);
+});
+  </script>
+</body>
+</html>
